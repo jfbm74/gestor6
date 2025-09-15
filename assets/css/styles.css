@@ -22,6 +22,7 @@
     --gray-700: #495057;
     --gray-800: #343a40;
     --gray-900: #212529;
+    --gray-50: #f9f9f9;
 
     --border-radius: 8px;
     --border-radius-sm: 4px;
@@ -538,6 +539,15 @@ body {
     overflow-y: auto;
 }
 
+/* Modal ancho para PDF Preview */
+.modal-content-wide {
+    max-width: 1400px !important;
+    width: 95% !important;
+    height: 90vh;
+    overflow: hidden;
+    padding: 1.5rem;
+}
+
 .modal-header {
     margin-bottom: 1.5rem;
 }
@@ -646,4 +656,189 @@ body {
 
 .mt-3 {
     margin-top: 1rem;
+}
+
+/* === PDF PREVIEW MODAL STYLES === */
+.modal-content-split {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 2rem;
+    height: calc(90vh - 200px);
+}
+
+.pdf-preview-section {
+    display: flex;
+    flex-direction: column;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+}
+
+.pdf-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--gray-300);
+}
+
+.pdf-preview-header h4 {
+    margin: 0;
+    color: var(--gray-700);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pdf-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pdf-controls button {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--gray-400);
+    background: var(--white);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.pdf-controls button:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-500);
+}
+
+#zoom-level {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    min-width: 45px;
+    text-align: center;
+}
+
+.pdf-viewer-container {
+    position: relative;
+    flex: 1;
+    background: var(--white);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+}
+
+#pdf-viewer {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: var(--border-radius-sm);
+}
+
+.pdf-loading, .pdf-error {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: var(--white);
+    color: var(--gray-600);
+}
+
+.pdf-loading i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.pdf-error {
+    color: var(--danger-color);
+}
+
+.pdf-error i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.form-section h4 {
+    margin: 0 0 1.5rem 0;
+    color: var(--gray-700);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--gray-300);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-300);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition);
+}
+
+.modal-close:hover {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .modal-content-split {
+        grid-template-columns: 1fr 350px;
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .modal-content-wide {
+        width: 98% !important;
+        height: 95vh;
+        padding: 1rem;
+    }
+
+    .modal-content-split {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        height: auto;
+    }
+
+    .pdf-preview-section {
+        height: 400px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
 }

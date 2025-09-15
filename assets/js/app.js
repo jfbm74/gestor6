@@ -41,6 +41,9 @@ function initializeFileManager() {
     // Inicializar tooltips para botones de acción
     initializeTooltips();
 
+    // Inicializar controles de PDF
+    initializePdfControls();
+
     // Cerrar modal al hacer click fuera
     if (copyModal) {
         copyModal.addEventListener('click', function(e) {
@@ -94,7 +97,7 @@ function renameItem(oldName) {
 }
 
 /**
- * Muestra el modal de copia y renombrado
+ * Muestra el modal de copia y renombrado con preview del PDF
  */
 function showCopyModal(relativePath, originalName) {
     // Limpiar campos
@@ -110,13 +113,116 @@ function showCopyModal(relativePath, originalName) {
     document.getElementById('original-filename-display').textContent = originalName;
     document.getElementById('original_file_relative').value = relativePath;
 
+    // Cargar PDF preview
+    loadPdfPreview(relativePath, originalName);
+
     // Mostrar modal
     copyModal.style.display = 'flex';
 
-    // Focus en el primer campo
+    // Focus en el primer campo después de un pequeño delay
     setTimeout(() => {
         document.getElementById('doc_number').focus();
     }, 100);
+}
+
+/**
+ * Carga la vista previa del PDF
+ */
+function loadPdfPreview(relativePath, fileName) {
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const pdfLoading = document.getElementById('pdf-loading');
+    const pdfError = document.getElementById('pdf-error');
+
+    // Mostrar indicador de carga
+    pdfLoading.style.display = 'flex';
+    pdfError.style.display = 'none';
+    pdfViewer.style.display = 'none';
+
+    // Verificar si es un PDF
+    const extension = fileName.toLowerCase().split('.').pop();
+    if (extension !== 'pdf') {
+        showPdfError('Este archivo no es un PDF');
+        return;
+    }
+
+    // Construir URL del PDF
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentBase = urlParams.get('base') || 'SCANNER';
+    const pdfUrl = `?download=${encodeURIComponent(relativePath)}&base=${currentBase}`;
+
+    // Configurar el iframe
+    pdfViewer.onload = function() {
+        pdfLoading.style.display = 'none';
+        pdfViewer.style.display = 'block';
+    };
+
+    pdfViewer.onerror = function() {
+        showPdfError('Error al cargar el documento PDF');
+    };
+
+    // Cargar el PDF
+    pdfViewer.src = pdfUrl;
+
+    // Timeout para detectar errores de carga
+    setTimeout(() => {
+        if (pdfLoading.style.display === 'flex') {
+            showPdfError('Tiempo de carga agotado');
+        }
+    }, 10000); // 10 segundos timeout
+}
+
+/**
+ * Muestra error en el visor de PDF
+ */
+function showPdfError(message) {
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const pdfLoading = document.getElementById('pdf-loading');
+    const pdfError = document.getElementById('pdf-error');
+
+    pdfViewer.style.display = 'none';
+    pdfLoading.style.display = 'none';
+    pdfError.style.display = 'flex';
+    pdfError.querySelector('p').textContent = message;
+}
+
+/**
+ * Controles de zoom para el PDF
+ */
+let currentZoom = 100;
+
+function initializePdfControls() {
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    const zoomLevel = document.getElementById('zoom-level');
+
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', function() {
+            if (currentZoom < 200) {
+                currentZoom += 25;
+                updatePdfZoom();
+            }
+        });
+    }
+
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', function() {
+            if (currentZoom > 50) {
+                currentZoom -= 25;
+                updatePdfZoom();
+            }
+        });
+    }
+}
+
+function updatePdfZoom() {
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const zoomLevel = document.getElementById('zoom-level');
+
+    if (pdfViewer && zoomLevel) {
+        pdfViewer.style.transform = `scale(${currentZoom / 100})`;
+        pdfViewer.style.transformOrigin = 'top left';
+        zoomLevel.textContent = currentZoom + '%';
+    }
 }
 
 /**
@@ -124,6 +230,20 @@ function showCopyModal(relativePath, originalName) {
  */
 function hideCopyModal() {
     copyModal.style.display = 'none';
+
+    // Reset PDF viewer
+    const pdfViewer = document.getElementById('pdf-viewer');
+    if (pdfViewer) {
+        pdfViewer.src = '';
+        pdfViewer.style.transform = 'scale(1)';
+    }
+
+    // Reset zoom
+    currentZoom = 100;
+    const zoomLevel = document.getElementById('zoom-level');
+    if (zoomLevel) {
+        zoomLevel.textContent = '100%';
+    }
 }
 
 /**
