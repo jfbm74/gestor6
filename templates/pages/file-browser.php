@@ -300,7 +300,7 @@ include 'templates/layout/header.php';
     </div>
 
     <!-- Admin Forms -->
-    <?php if ($authManager->hasPermission('upload') || $authManager->hasPermission('admin')): ?>
+    <?php if (($authManager->hasPermission('upload') || $authManager->hasPermission('admin')) && $activeBaseKey !== 'SCANNER'): ?>
     <div class="admin-section">
         <h3><i class="fas fa-tools"></i> Herramientas de Administración</h3>
         <div class="admin-forms">
