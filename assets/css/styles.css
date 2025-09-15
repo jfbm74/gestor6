@@ -845,7 +845,7 @@ body {
 
 /* === MODERN BATCH UPLOAD STYLES === */
 .modern-upload-section {
-    margin: 2rem 0;
+    margin: 2rem 0 2rem 2rem; /* Agregar margen izquierdo */
 }
 
 /* Modern Drop Zone */
@@ -853,7 +853,7 @@ body {
     border: 2px dashed #e1e5e9;
     border-radius: 16px;
     background: linear-gradient(135deg, #f8fafb 0%, #ffffff 100%);
-    padding: 3rem 2rem;
+    padding: 1.5rem 2rem; /* Reducir padding vertical a la mitad */
     text-align: center;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -895,7 +895,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1rem; /* Reducir gap */
     position: relative;
     z-index: 1;
 }
@@ -949,7 +949,7 @@ body {
 
 /* Files Preview Section */
 .files-preview-section {
-    margin-top: 2rem;
+    margin: 2rem 0 2rem 2rem; /* Agregar margen izquierdo consistente */
     background: var(--white);
     border: 1px solid #e9ecef;
     border-radius: 16px;
@@ -1068,6 +1068,59 @@ body {
     overflow: hidden;
 }
 
+/* File Preview */
+.file-preview {
+    width: 100%;
+    height: 120px;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.preview-placeholder,
+.preview-placeholder-enhanced {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: var(--gray-500);
+    font-size: 0.75rem;
+}
+
+.preview-placeholder i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.placeholder-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.placeholder-content i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.placeholder-text {
+    font-weight: 600;
+    color: var(--gray-600);
+    font-size: 0.8rem;
+}
+
+.placeholder-size {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+}
+
 .modern-file-card::before {
     content: '';
     position: absolute;
@@ -1170,7 +1223,7 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
     .modern-drop-zone {
-        padding: 2rem 1rem;
+        padding: 1rem; /* Reducir padding en móvil */
         margin: 1rem 0;
     }
 
@@ -1195,7 +1248,8 @@ body {
         justify-content: center;
     }
 
-    .modern-upload-section {
-        margin: 1rem 0;
+    .modern-upload-section,
+    .files-preview-section {
+        margin: 1rem; /* Margen reducido en móvil */
     }
 }

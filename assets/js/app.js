@@ -722,6 +722,15 @@ function updateBatchDisplay() {
     // Generar cards de archivos
     grid.innerHTML = batchFiles.map(fileObj => createFileCard(fileObj)).join('');
 
+    // Generar previews para PDFs después de renderizar
+    setTimeout(() => {
+        batchFiles.forEach(fileObj => {
+            if (fileObj.name.toLowerCase().endsWith('.pdf')) {
+                generatePDFPreview(fileObj);
+            }
+        });
+    }, 100);
+
     // Habilitar/deshabilitar botón de procesar
     const allReady = batchFiles.every(f => f.status === 'ready');
     processBtn.disabled = !allReady || batchFiles.length === 0;
@@ -733,9 +742,17 @@ function updateBatchDisplay() {
 function createFileCard(fileObj) {
     const icon = getFileIcon(fileObj.name);
     const sizeFormatted = formatFileSize(fileObj.size);
+    const isPDF = fileObj.name.toLowerCase().endsWith('.pdf');
 
     return `
         <div class="modern-file-card" data-file-id="${fileObj.id}">
+            ${isPDF ? `<div class="file-preview" id="preview-${fileObj.id}">
+                <div class="preview-placeholder">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Vista previa</span>
+                </div>
+            </div>` : ''}
+
             <div class="file-card-header">
                 <div class="file-card-info">
                     <div class="file-card-name">
@@ -873,6 +890,76 @@ function submitBatchForm() {
     showNotification('Función de procesamiento en desarrollo...', 'info');
     hideBatchFormModal();
     // TODO: Implementar la subida real de archivos
+}
+
+/**
+ * Genera vista previa para archivos PDF
+ */
+function generatePDFPreview(fileObj) {
+    const previewContainer = document.getElementById(`preview-${fileObj.id}`);
+    if (!previewContainer) return;
+
+    // Crear un canvas pequeño para la preview
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 140;
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.objectFit = 'cover';
+    canvas.style.borderRadius = '6px';
+
+    const ctx = canvas.getContext('2d');
+
+    // Crear URL temporal para el archivo
+    const fileUrl = URL.createObjectURL(fileObj.file);
+
+    // Usar PDF.js si está disponible, sino mostrar placeholder mejorado
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.getDocument(fileUrl).promise.then(pdf => {
+            return pdf.getPage(1);
+        }).then(page => {
+            const viewport = page.getViewport({ scale: 0.5 });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+
+            return page.render(renderContext).promise;
+        }).then(() => {
+            previewContainer.innerHTML = '';
+            previewContainer.appendChild(canvas);
+        }).catch(error => {
+            console.log('PDF.js no disponible, usando placeholder');
+            showPreviewPlaceholder(previewContainer, fileObj);
+        });
+    } else {
+        // Placeholder mejorado sin PDF.js
+        showPreviewPlaceholder(previewContainer, fileObj);
+    }
+
+    // Limpiar URL temporal
+    setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+}
+
+/**
+ * Muestra placeholder mejorado para vista previa
+ */
+function showPreviewPlaceholder(container, fileObj) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'preview-placeholder-enhanced';
+    placeholder.innerHTML = `
+        <div class="placeholder-content">
+            <i class="fas fa-file-pdf"></i>
+            <span class="placeholder-text">PDF</span>
+            <div class="placeholder-size">${formatFileSize(fileObj.file.size)}</div>
+        </div>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(placeholder);
 }
 
 /**
