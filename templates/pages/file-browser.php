@@ -1,6 +1,35 @@
 <?php
 $pageTitle = "Explorador de Archivos";
 $showNavTabs = true;
+
+// Pre-calcular valores costosos para optimizar el template
+$currentUser = htmlspecialchars($authManager->getCurrentUser());
+$activeBaseKeyEscaped = htmlspecialchars($activeBaseKey);
+
+// Optimizar datos de archivos
+if (!empty($directoryContents)) {
+    foreach ($directoryContents as &$item) {
+        $item['name_escaped'] = htmlspecialchars($item['name']);
+        $item['path_encoded'] = urlencode($item['path']);
+        $item['path_escaped'] = htmlspecialchars($item['path'], ENT_QUOTES);
+        $item['size_formatted'] = $item['is_directory'] ? '-' : number_format($item['size'] / 1024, 1) . ' KB';
+        if (!$item['is_directory']) {
+            $extension = pathinfo($item['name'], PATHINFO_EXTENSION);
+            $item['file_icon'] = $searchManager->getFileIcon($extension);
+        }
+    }
+    unset($item); // Romper la referencia
+}
+
+// Optimizar archivos recientes
+if (!empty($recentFiles)) {
+    foreach ($recentFiles as &$file) {
+        $file['full_path_encoded'] = urlencode($file['full_path']);
+        $file['name_escaped'] = htmlspecialchars($file['name']);
+    }
+    unset($file);
+}
+
 include 'templates/layout/header.php';
 ?>
 
@@ -13,7 +42,7 @@ include 'templates/layout/header.php';
                class="search-input"
                placeholder="🔎 Buscar en todas las carpetas..."
                value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-        <input type="hidden" name="base" value="<?php echo $activeBaseKey; ?>">
+        <input type="hidden" name="base" value="<?php echo $activeBaseKeyEscaped; ?>">
     </form>
 </div>
 
@@ -25,7 +54,7 @@ include 'templates/layout/header.php';
                 <i class="fas fa-search"></i>
                 Resultados para "<?php echo htmlspecialchars($_GET['search']); ?>"
             </h2>
-            <a href="?base=<?php echo $activeBaseKey; ?>" class="btn btn-outline-primary btn-sm">
+            <a href="?base=<?php echo $activeBaseKeyEscaped; ?>" class="btn btn-outline-primary btn-sm">
                 <i class="fas fa-arrow-left"></i>
                 Volver a explorar
             </a>
@@ -104,11 +133,11 @@ include 'templates/layout/header.php';
         </div>
         <div class="recent-files-grid">
             <?php foreach (array_slice($recentFiles, 0, 6) as $file): ?>
-            <div class="file-card" onclick="window.open('?download=<?php echo urlencode($file['full_path']); ?>&is_absolute=1', '_blank')">
+            <div class="file-card" onclick="window.open('?download=<?php echo $file['full_path_encoded']; ?>&is_absolute=1', '_blank')">
                 <div class="file-icon <?php echo $file['extension']; ?>">
                     <i class="fas <?php echo $searchManager->getFileIcon($file['extension']); ?>"></i>
                 </div>
-                <div class="file-name"><?php echo htmlspecialchars($file['name']); ?></div>
+                <div class="file-name"><?php echo $file['name_escaped']; ?></div>
                 <div class="file-size"><?php echo $file['size_formatted']; ?></div>
             </div>
             <?php endforeach; ?>
@@ -150,7 +179,7 @@ include 'templates/layout/header.php';
                                 <i class="fas fa-level-up-alt file-info-icon" style="color: var(--gray-500);"></i>
                                 <div class="file-info-details">
                                     <div class="file-info-name">
-                                        <a href="?base=<?php echo $activeBaseKey; ?>&path=<?php echo urlencode($parentPath); ?>">
+                                        <a href="?base=<?php echo $activeBaseKeyEscaped; ?>&path=<?php echo urlencode($parentPath); ?>">
                                             ⬆️ Subir un nivel
                                         </a>
                                     </div>
@@ -169,30 +198,30 @@ include 'templates/layout/header.php';
                     <tr class="file-row">
                         <td>
                             <div class="file-info">
-                                <i class="fas <?php echo $item['is_directory'] ? 'fa-folder folder' : $searchManager->getFileIcon(pathinfo($item['name'], PATHINFO_EXTENSION)); ?> file-info-icon"></i>
+                                <i class="fas <?php echo $item['is_directory'] ? 'fa-folder folder' : $item['file_icon']; ?> file-info-icon"></i>
                                 <div class="file-info-details">
                                     <div class="file-info-name">
                                         <?php if ($item['is_directory']): ?>
-                                            <a href="?base=<?php echo $activeBaseKey; ?>&path=<?php echo urlencode($item['path']); ?>">
-                                                📁 <?php echo htmlspecialchars($item['name']); ?>
+                                            <a href="?base=<?php echo $activeBaseKeyEscaped; ?>&path=<?php echo $item['path_encoded']; ?>">
+                                                📁 <?php echo $item['name_escaped']; ?>
                                             </a>
                                         <?php else: ?>
-                                            <a href="?download=<?php echo urlencode($item['path']); ?>&base=<?php echo $activeBaseKey; ?>" target="_blank">
-                                                📄 <?php echo htmlspecialchars($item['name']); ?>
+                                            <a href="?download=<?php echo $item['path_encoded']; ?>&base=<?php echo $activeBaseKeyEscaped; ?>" target="_blank">
+                                                📄 <?php echo $item['name_escaped']; ?>
                                             </a>
                                         <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
                         </td>
-                        <td><?php echo $item['is_directory'] ? '-' : number_format($item['size'] / 1024, 1) . ' KB'; ?></td>
-                        <td><?php echo htmlspecialchars($authManager->getCurrentUser()); ?></td>
+                        <td><?php echo $item['size_formatted']; ?></td>
+                        <td><?php echo $currentUser; ?></td>
                         <td><?php echo $item['modified_formatted']; ?></td>
                         <td>
                             <div class="action-buttons">
                                 <?php if ($activeBaseKey === 'SCANNER' && !$item['is_directory'] && $authManager->hasPermission('upload')): ?>
                                     <button class="btn btn-outline-success btn-sm"
-                                            onclick="showCopyModal('<?php echo htmlspecialchars($item['path'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($item['name'], ENT_QUOTES); ?>')">
+                                            onclick="showCopyModal('<?php echo $item['path_escaped']; ?>', '<?php echo $item['name_escaped']; ?>')">
                                         <i class="fas fa-copy"></i>
                                         Copiar
                                     </button>

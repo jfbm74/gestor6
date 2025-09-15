@@ -107,7 +107,8 @@ class SearchManager
                 continue;
             }
 
-            $baseFiles = $this->getFilesFromDirectory($basePath, $baseKey);
+            // Optimización: reducir profundidad de búsqueda para archivos recientes
+            $baseFiles = $this->getFilesFromDirectory($basePath, $baseKey, 2);
             $allFiles = array_merge($allFiles, $baseFiles);
         }
 
