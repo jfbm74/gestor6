@@ -9,7 +9,8 @@
       "Bash(curl:*)",
       "Bash(nginx:*)",
       "Read(//opt/homebrew/var/log/nginx/**)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
