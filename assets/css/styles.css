@@ -1143,6 +1143,43 @@ body {
     transform: scaleX(1);
 }
 
+/* Estados de procesamiento */
+.modern-file-card.uploading {
+    border-color: #ffc107;
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.modern-file-card.uploading::before {
+    background: linear-gradient(90deg, #ffc107, #ffca2c);
+    transform: scaleX(1);
+    animation: pulse 1.5s infinite;
+}
+
+.modern-file-card.completed {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.modern-file-card.completed::before {
+    background: linear-gradient(90deg, #28a745, #34ce57);
+    transform: scaleX(1);
+}
+
+.modern-file-card.error {
+    border-color: #dc3545;
+    background: rgba(220, 53, 69, 0.05);
+}
+
+.modern-file-card.error::before {
+    background: linear-gradient(90deg, #dc3545, #e55a6a);
+    transform: scaleX(1);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
 .file-card-header {
     display: flex;
     justify-content: space-between;

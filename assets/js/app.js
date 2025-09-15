@@ -743,9 +743,10 @@ function createFileCard(fileObj) {
     const icon = getFileIcon(fileObj.name);
     const sizeFormatted = formatFileSize(fileObj.size);
     const isPDF = fileObj.name.toLowerCase().endsWith('.pdf');
+    const statusClass = fileObj.status || 'ready';
 
     return `
-        <div class="modern-file-card" data-file-id="${fileObj.id}">
+        <div class="modern-file-card ${statusClass}" data-file-id="${fileObj.id}">
             ${isPDF ? `<div class="file-preview" id="preview-${fileObj.id}">
                 <div class="preview-placeholder">
                     <i class="fas fa-file-pdf"></i>
@@ -758,6 +759,7 @@ function createFileCard(fileObj) {
                     <div class="file-card-name">
                         <i class="fas ${icon}"></i>
                         ${fileObj.name}
+                        ${getStatusIcon(fileObj.status)}
                     </div>
                     <div class="file-card-size">${sizeFormatted}</div>
                 </div>
@@ -892,8 +894,16 @@ function submitBatchForm() {
         return;
     }
 
-    showNotification('Función de procesamiento en desarrollo...', 'info');
+    // Obtener valores adicionales
+    const secondName = document.getElementById('batch_second_name').value.trim();
+    const secondLastname = document.getElementById('batch_second_lastname').value.trim();
+    const destinationBase = document.getElementById('batch_destination_base_select').value;
+
+    showLoadingIndicator();
     hideBatchFormModal();
+
+    // Procesar archivos uno por uno
+    processBatchFiles(docNumber, firstName, secondName, firstLastname, secondLastname, licensePlate, destinationBase);
     // TODO: Implementar la subida real de archivos
 }
 
@@ -1082,3 +1092,157 @@ document.addEventListener('keydown', function(e) {
         closeFilePreview();
     }
 });
+
+/**
+ * Procesa los archivos del lote secuencialmente
+ */
+async function processBatchFiles(docNumber, firstName, secondName, firstLastname, secondLastname, licensePlate, destinationBase) {
+    let processedCount = 0;
+    let errorCount = 0;
+    const totalFiles = batchFiles.length;
+
+    try {
+        for (let i = 0; i < batchFiles.length; i++) {
+            const fileObj = batchFiles[i];
+
+            try {
+                // Actualizar status del archivo
+                fileObj.status = 'uploading';
+                renderBatchFiles();
+
+                // Crear nombre del archivo usando la misma lógica que submitCopyForm
+                const filenameParts = [
+                    docNumber,
+                    firstName,
+                    secondName,
+                    firstLastname,
+                    secondLastname,
+                    licensePlate,
+                    fileObj.type || 'OTRO', // Agregar el tipo de documento
+                    String(i + 1).padStart(2, '0') // Número consecutivo
+                ];
+
+                const newNameBase = filenameParts
+                    .filter(Boolean)
+                    .join('_')
+                    .toUpperCase()
+                    .replace(/\s+/g, '_');
+
+                // Obtener extensión del archivo original
+                const extension = fileObj.name.includes('.')
+                    ? fileObj.name.substring(fileObj.name.lastIndexOf('.'))
+                    : '';
+
+                const finalNewName = newNameBase + extension;
+
+                // Validar longitud del nombre
+                if (finalNewName.length > 255) {
+                    throw new Error('Nombre de archivo demasiado largo');
+                }
+
+                // Subir archivo usando FormData
+                const formData = new FormData();
+                formData.append('action', 'batch_upload');
+                formData.append('file', fileObj.file);
+                formData.append('new_name', finalNewName);
+                formData.append('destination_base', destinationBase);
+
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `Error del servidor: ${response.status}` }));
+                    throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                // Verificar si hubo error en la respuesta
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                if (!result.success) {
+                    throw new Error('Error desconocido en el procesamiento');
+                }
+
+                // Marcar como completado
+                fileObj.status = 'completed';
+                processedCount++;
+
+            } catch (error) {
+                console.error(`Error procesando ${fileObj.name}:`, error);
+                fileObj.status = 'error';
+                fileObj.error = error.message;
+                errorCount++;
+            }
+
+            // Actualizar vista
+            renderBatchFiles();
+
+            // Pequeña pausa para evitar saturar el servidor
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // Mostrar resultado final
+        hideLoadingIndicator();
+
+        if (errorCount === 0) {
+            showNotification(`✅ ${processedCount} archivos procesados exitosamente`, 'success');
+            // Limpiar archivos después del éxito
+            setTimeout(() => {
+                clearBatchFiles();
+            }, 2000);
+        } else {
+            showNotification(`⚠️ Procesados: ${processedCount}, Errores: ${errorCount}`, 'warning');
+        }
+
+    } catch (error) {
+        hideLoadingIndicator();
+        showNotification(`Error general: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Muestra indicador de carga
+ */
+function showLoadingIndicator() {
+    const indicator = document.createElement('div');
+    indicator.id = 'loading-indicator';
+    indicator.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.5); z-index: 9999;
+                    display: flex; justify-content: center; align-items: center;">
+            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                <p style="margin: 0; font-weight: 600;">Procesando archivos...</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(indicator);
+}
+
+/**
+ * Oculta indicador de carga
+ */
+function hideLoadingIndicator() {
+    const indicator = document.getElementById('loading-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+/**
+ * Obtiene el icono de estado para un archivo
+ */
+function getStatusIcon(status) {
+    const iconMap = {
+        'ready': '',
+        'uploading': '<i class="fas fa-spinner fa-spin" style="color: #ffc107; margin-left: 0.5rem;" title="Subiendo..."></i>',
+        'completed': '<i class="fas fa-check-circle" style="color: #28a745; margin-left: 0.5rem;" title="Completado"></i>',
+        'error': '<i class="fas fa-exclamation-circle" style="color: #dc3545; margin-left: 0.5rem;" title="Error"></i>'
+    };
+    return iconMap[status] || '';
+}

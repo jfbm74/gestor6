@@ -152,6 +152,58 @@ try {
         }
     }
 
+    // Batch upload de archivos
+    if (isset($_POST['action']) && $_POST['action'] === 'batch_upload') {
+        $authManager->requirePermission('upload');
+
+        header('Content-Type: application/json');
+
+        try {
+            if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception("Error al recibir el archivo");
+            }
+
+            if (!isset($_POST['new_name']) || !isset($_POST['destination_base'])) {
+                throw new Exception("Parámetros faltantes");
+            }
+
+            $uploadedFile = $_FILES['file'];
+            $newName = $_POST['new_name'];
+            $destinationBase = $_POST['destination_base'];
+
+            // Validar que la base de destino existe
+            if (!isset($config['document_bases'][$destinationBase])) {
+                throw new Exception("Base de documentos no válida");
+            }
+
+            // Subir archivo directamente a la base de destino
+            $destinationPath = $config['document_bases'][$destinationBase]['path'];
+
+            $sanitizedFileName = $pathValidator->sanitizeFilename($newName);
+            if (empty($sanitizedFileName)) {
+                throw new Exception("Nombre de archivo no válido");
+            }
+
+            $targetPath = $destinationPath . '/' . $sanitizedFileName;
+
+            if (file_exists($targetPath)) {
+                throw new Exception("El archivo ya existe");
+            }
+
+            if (!move_uploaded_file($uploadedFile['tmp_name'], $targetPath)) {
+                throw new Exception("Error al subir el archivo");
+            }
+
+            echo json_encode(['success' => true, 'filename' => $sanitizedFileName]);
+            exit;
+
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['error' => $e->getMessage()]);
+            exit;
+        }
+    }
+
     // === PREPARAR DATOS PARA LA VISTA ===
 
     if (isset($_GET['search']) && !empty($_GET['search'])) {
