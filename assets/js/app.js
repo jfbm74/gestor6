@@ -1108,7 +1108,7 @@ async function processBatchFiles(docNumber, firstName, secondName, firstLastname
             try {
                 // Actualizar status del archivo
                 fileObj.status = 'uploading';
-                renderBatchFiles();
+                updateBatchDisplay();
 
                 // Crear nombre del archivo usando la misma lógica que submitCopyForm
                 const filenameParts = [
@@ -1180,7 +1180,7 @@ async function processBatchFiles(docNumber, firstName, secondName, firstLastname
             }
 
             // Actualizar vista
-            renderBatchFiles();
+            updateBatchDisplay();
 
             // Pequeña pausa para evitar saturar el servidor
             await new Promise(resolve => setTimeout(resolve, 500));
