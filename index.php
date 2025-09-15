@@ -4,6 +4,9 @@
  * Punto de entrada principal del sistema modular
  */
 
+// Iniciar medición de tiempo
+$startTime = microtime(true);
+
 // Autoloader simple para las clases
 spl_autoload_register(function ($className) {
     $paths = [
@@ -23,12 +26,16 @@ spl_autoload_register(function ($className) {
 });
 
 // Cargar configuración
+$configLoadTime = microtime(true);
 $config = require 'config/config.php';
+error_log("Config load time: " . number_format((microtime(true) - $configLoadTime) * 1000, 2) . "ms");
 
 // Inicializar componentes principales
+$initTime = microtime(true);
 $pathValidator = new PathValidator(array_column($config['document_bases'], 'path'));
 $sessionManager = new SessionManager($config);
 $authManager = new AuthManager($config, $sessionManager);
+error_log("Components init time: " . number_format((microtime(true) - $initTime) * 1000, 2) . "ms");
 
 // Manejar logout
 if (isset($_GET['logout'])) {
@@ -57,9 +64,11 @@ if (!$authManager->isAuthenticated()) {
 // === USUARIO AUTENTICADO - LÓGICA PRINCIPAL ===
 
 // Inicializar managers de archivos
+$managersInitTime = microtime(true);
 $directoryManager = new DirectoryManager($pathValidator, $config['document_bases']);
 $fileManager = new FileManager($pathValidator, $config['document_bases'], $config);
 $searchManager = new SearchManager($config['document_bases'], $pathValidator);
+error_log("Managers init time: " . number_format((microtime(true) - $managersInitTime) * 1000, 2) . "ms");
 
 // Determinar base activa
 $activeBaseKey = array_key_first($config['document_bases']);
@@ -154,17 +163,26 @@ try {
         $parentPath = null;
     } else {
         // Navegación normal
+        $navigationTime = microtime(true);
         $searchResults = [];
+
+        $dirContentsTime = microtime(true);
         $directoryContents = $directoryManager->getDirectoryContents($activeBaseKey, $currentPathRelative);
+        error_log("Directory contents time: " . number_format((microtime(true) - $dirContentsTime) * 1000, 2) . "ms");
+
         $breadcrumbs = $directoryManager->getBreadcrumbs($activeBaseKey, $currentPathRelative);
         $parentPath = $directoryManager->getParentPath($currentPathRelative);
 
         // Obtener archivos recientes solo en la página principal
         if (empty($currentPathRelative)) {
+            $recentFilesTime = microtime(true);
             $recentFiles = $searchManager->getRecentFiles(8, [$activeBaseKey]);
+            error_log("Recent files time: " . number_format((microtime(true) - $recentFilesTime) * 1000, 2) . "ms");
         } else {
             $recentFiles = [];
         }
+
+        error_log("Total navigation time: " . number_format((microtime(true) - $navigationTime) * 1000, 2) . "ms");
     }
 
 } catch (Exception $e) {
@@ -180,5 +198,10 @@ try {
 }
 
 // Mostrar la vista principal
+$renderTime = microtime(true);
 include 'templates/pages/file-browser.php';
+error_log("Template render time: " . number_format((microtime(true) - $renderTime) * 1000, 2) . "ms");
+
+$totalTime = microtime(true) - $startTime;
+error_log("TOTAL EXECUTION TIME: " . number_format($totalTime * 1000, 2) . "ms");
 ?>
