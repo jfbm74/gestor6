@@ -41,9 +41,18 @@ class DirectoryManager
             throw new Exception("Error al escanear el directorio");
         }
 
+        $itemCount = 0;
+        $maxItems = 1000; // Limitar a 1000 archivos por directorio para mejorar rendimiento
+
         foreach ($scanResult as $item) {
             if ($item === '.' || $item === '..') {
                 continue;
+            }
+
+            // Límite de rendimiento
+            if ($itemCount >= $maxItems) {
+                error_log("Directory listing truncated at {$maxItems} items for performance: {$fullPath}");
+                break;
             }
 
             $itemPath = $fullPath . DIRECTORY_SEPARATOR . $item;
@@ -58,6 +67,8 @@ class DirectoryManager
                 'modified' => filemtime($itemPath),
                 'modified_formatted' => date("d/m/Y H:i", filemtime($itemPath))
             ];
+
+            $itemCount++;
         }
 
         // Ordenar: directorios primero, luego archivos, alfabéticamente

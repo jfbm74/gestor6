@@ -173,7 +173,11 @@ try {
         $breadcrumbs = $directoryManager->getBreadcrumbs($activeBaseKey, $currentPathRelative);
         $parentPath = $directoryManager->getParentPath($currentPathRelative);
 
-        // Obtener archivos recientes solo en la página principal
+        // TEMPORALMENTE DESHABILITADO: Obtener archivos recientes
+        // Esta operación es muy costosa en Windows - escanea todo el directorio
+        $recentFiles = [];
+
+        /*
         if (empty($currentPathRelative)) {
             $recentFilesTime = microtime(true);
             $recentFiles = $searchManager->getRecentFiles(8, [$activeBaseKey]);
@@ -181,6 +185,7 @@ try {
         } else {
             $recentFiles = [];
         }
+        */
 
         error_log("Total navigation time: " . number_format((microtime(true) - $navigationTime) * 1000, 2) . "ms");
     }
