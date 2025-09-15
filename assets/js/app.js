@@ -761,9 +761,14 @@ function createFileCard(fileObj) {
                     </div>
                     <div class="file-card-size">${sizeFormatted}</div>
                 </div>
-                <button class="file-remove-btn" onclick="removeBatchFile(${fileObj.id})" title="Eliminar archivo">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="file-card-actions">
+                    <button class="file-preview-btn" onclick="showFilePreview(${fileObj.id})" title="Vista previa">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="file-remove-btn" onclick="removeBatchFile(${fileObj.id})" title="Eliminar archivo">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="file-type-selector">
@@ -978,3 +983,102 @@ function getFileIcon(filename) {
     };
     return iconMap[extension] || 'fa-file';
 }
+
+/**
+ * Muestra la vista previa de un archivo en modal
+ */
+function showFilePreview(fileId) {
+    const fileObj = batchFiles.find(f => f.id === fileId);
+    if (!fileObj) return;
+
+    // Crear modal si no existe
+    let modal = document.getElementById('file-preview-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'file-preview-modal';
+        modal.className = 'file-preview-modal';
+        modal.innerHTML = `
+            <div class="file-preview-content">
+                <div class="file-preview-header">
+                    <h3 class="file-preview-title" id="preview-modal-title"></h3>
+                    <button class="file-preview-close" onclick="closeFilePreview()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="file-preview-viewer" id="preview-modal-viewer">
+                    <!-- Contenido dinámico -->
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // Actualizar título
+    document.getElementById('preview-modal-title').textContent = fileObj.name;
+
+    // Crear vista previa según tipo de archivo
+    const viewer = document.getElementById('preview-modal-viewer');
+    const fileUrl = URL.createObjectURL(fileObj.file);
+    const extension = fileObj.name.split('.').pop().toLowerCase();
+
+    if (extension === 'pdf') {
+        viewer.innerHTML = `
+            <iframe src="${fileUrl}"
+                    style="width: 100%; height: 70vh; border: 1px solid #dee2e6; border-radius: 8px;">
+            </iframe>
+        `;
+    } else if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+        viewer.innerHTML = `
+            <img src="${fileUrl}"
+                 alt="${fileObj.name}"
+                 style="max-width: 100%; max-height: 70vh; border: 1px solid #dee2e6; border-radius: 8px;">
+        `;
+    } else {
+        viewer.innerHTML = `
+            <div style="text-align: center; padding: 3rem; color: var(--gray-500);">
+                <i class="fas fa-file" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <p>Vista previa no disponible para este tipo de archivo</p>
+                <p class="text-muted">${fileObj.name}</p>
+            </div>
+        `;
+    }
+
+    // Mostrar modal
+    modal.classList.add('active');
+
+    // Cerrar al hacer clic fuera del contenido
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeFilePreview();
+        }
+    };
+}
+
+/**
+ * Cierra el modal de vista previa
+ */
+function closeFilePreview() {
+    const modal = document.getElementById('file-preview-modal');
+    if (modal) {
+        modal.classList.remove('active');
+
+        // Limpiar URLs de objeto para liberar memoria
+        const viewer = document.getElementById('preview-modal-viewer');
+        const iframe = viewer.querySelector('iframe');
+        const img = viewer.querySelector('img');
+
+        if (iframe && iframe.src.startsWith('blob:')) {
+            URL.revokeObjectURL(iframe.src);
+        }
+        if (img && img.src.startsWith('blob:')) {
+            URL.revokeObjectURL(img.src);
+        }
+    }
+}
+
+// Cerrar modal con tecla ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeFilePreview();
+    }
+});
