@@ -204,6 +204,84 @@ try {
         }
     }
 
+    // Procesamiento OCR de archivo
+    if (isset($_GET['action']) && $_GET['action'] === 'ocr' && isset($_GET['file'])) {
+        $authManager->requirePermission('upload');
+
+        header('Content-Type: application/json');
+
+        try {
+            // Incluir la clase OCR
+            require_once 'src/OCR/OCRProcessor.php';
+
+            $fileRelativePath = $_GET['file'];
+            $baseKey = $_GET['base'] ?? $activeBaseKey;
+
+            if (!isset($config['document_bases'][$baseKey])) {
+                throw new Exception("Base de documentos no válida");
+            }
+
+            $basePath = $config['document_bases'][$baseKey]['path'];
+            $fullFilePath = $pathValidator->buildSecurePath($basePath, $fileRelativePath);
+
+            if (!file_exists($fullFilePath) || !is_file($fullFilePath)) {
+                throw new Exception("Archivo no encontrado");
+            }
+
+            // Verificar que sea un PDF
+            $extension = strtolower(pathinfo($fullFilePath, PATHINFO_EXTENSION));
+            if ($extension !== 'pdf') {
+                throw new Exception("Solo se pueden procesar archivos PDF");
+            }
+
+            // Crear procesador OCR
+            $ocrProcessor = new OCRProcessor();
+
+            // Verificar si ya existe metadata OCR
+            $existingMetadata = $ocrProcessor->readTextMetadata($fullFilePath, 'json');
+
+            if ($existingMetadata && !isset($_GET['force'])) {
+                // Devolver metadata existente
+                echo json_encode([
+                    'success' => true,
+                    'cached' => true,
+                    'text' => $existingMetadata['text_content'],
+                    'processed_date' => $existingMetadata['processed_date'],
+                    'char_count' => $existingMetadata['char_count'],
+                    'word_count' => $existingMetadata['word_count']
+                ]);
+            } else {
+                // Procesar con OCR
+                $result = $ocrProcessor->processPDF($fullFilePath);
+
+                if ($result['success']) {
+                    // Guardar metadata
+                    $metadataPath = $ocrProcessor->saveTextMetadata($fullFilePath, $result['text'], 'json');
+
+                    echo json_encode([
+                        'success' => true,
+                        'cached' => false,
+                        'text' => $result['text'],
+                        'page_count' => $result['page_count'],
+                        'language' => $result['language'],
+                        'char_count' => strlen($result['text']),
+                        'word_count' => str_word_count($result['text']),
+                        'metadata_file' => basename($metadataPath)
+                    ]);
+                } else {
+                    throw new Exception("Error en el procesamiento OCR");
+                }
+            }
+
+            exit;
+
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['error' => $e->getMessage()]);
+            exit;
+        }
+    }
+
     // === PREPARAR DATOS PARA LA VISTA ===
 
     if (isset($_GET['search']) && !empty($_GET['search'])) {

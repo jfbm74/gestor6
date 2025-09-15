@@ -278,6 +278,14 @@ include 'templates/layout/header.php';
                                     </button>
                                 <?php endif; ?>
 
+                                <?php if (!$item['is_directory'] && strtolower(pathinfo($item['name'], PATHINFO_EXTENSION)) === 'pdf' && $authManager->hasPermission('upload')): ?>
+                                    <button class="btn btn-outline-info btn-sm"
+                                            onclick="extractTextOCR('<?php echo $item['path_escaped']; ?>', '<?php echo $item['name_escaped']; ?>')">
+                                        <i class="fas fa-text-width"></i>
+                                        Extraer Texto
+                                    </button>
+                                <?php endif; ?>
+
                                 <?php if ($authManager->hasPermission('admin')): ?>
                                     <button class="btn btn-outline-primary btn-sm"
                                             onclick="renameItem('<?php echo htmlspecialchars($item['name'], ENT_QUOTES); ?>')">

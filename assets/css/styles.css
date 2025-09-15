@@ -1323,6 +1323,94 @@ body {
     border-radius: 8px;
 }
 
+/* Estilos para modal OCR */
+.ocr-info {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e9ecef;
+}
+
+.ocr-info h4 {
+    margin: 0 0 1rem 0;
+    color: var(--gray-800);
+    font-weight: 600;
+}
+
+.ocr-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: var(--gray-500);
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+}
+
+.badge-success {
+    background-color: #28a745;
+}
+
+.ocr-text-container {
+    margin-bottom: 1.5rem;
+}
+
+.ocr-textarea {
+    min-height: 400px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    resize: vertical;
+    background: #ffffff;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.ocr-textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.1);
+}
+
+/* Mejorar modal content wide para OCR */
+.modal-content-wide {
+    max-width: 90vw;
+    width: 1000px;
+}
+
+@media (max-width: 768px) {
+    .modal-content-wide {
+        width: 95vw;
+        max-width: none;
+    }
+
+    .ocr-stats {
+        gap: 0.25rem;
+    }
+
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+
+    .ocr-textarea {
+        min-height: 300px;
+        font-size: 0.8rem;
+    }
+}
+
 .file-type-selector {
     margin-bottom: 1rem;
 }

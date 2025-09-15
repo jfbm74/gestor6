@@ -1246,3 +1246,178 @@ function getStatusIcon(status) {
     };
     return iconMap[status] || '';
 }
+
+/**
+ * Extrae texto de un PDF usando OCR
+ */
+async function extractTextOCR(filePath, fileName) {
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+
+    try {
+        // Mostrar estado de carga
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+
+        // Construir URL para la petición OCR
+        const params = new URLSearchParams({
+            action: 'ocr',
+            file: filePath,
+            base: getActiveBaseKey()
+        });
+
+        const response = await fetch(`?${params.toString()}`);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: `Error del servidor: ${response.status}` }));
+            throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        // Mostrar resultado en modal
+        showOCRResultModal(fileName, result);
+
+        showNotification(
+            result.cached
+                ? '✅ Texto extraído (desde caché)'
+                : `✅ Texto extraído exitosamente (${result.page_count} páginas)`,
+            'success'
+        );
+
+    } catch (error) {
+        console.error('Error en OCR:', error);
+        showNotification(`❌ Error: ${error.message}`, 'error');
+    } finally {
+        // Restaurar botón
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    }
+}
+
+/**
+ * Muestra el resultado OCR en un modal
+ */
+function showOCRResultModal(fileName, result) {
+    // Crear modal si no existe
+    let modal = document.getElementById('ocr-result-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'ocr-result-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content modal-content-wide">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="fas fa-text-width"></i>
+                        Texto Extraído
+                    </h3>
+                    <button class="modal-close" onclick="hideOCRResultModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="ocr-result-content">
+                    <!-- Contenido dinámico -->
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // Actualizar contenido
+    const content = document.getElementById('ocr-result-content');
+    content.innerHTML = `
+        <div class="ocr-info">
+            <h4>📄 ${fileName}</h4>
+            <div class="ocr-stats">
+                <span class="badge">📊 ${result.char_count} caracteres</span>
+                <span class="badge">📝 ${result.word_count} palabras</span>
+                ${result.page_count ? `<span class="badge">📃 ${result.page_count} páginas</span>` : ''}
+                ${result.cached ? '<span class="badge badge-info">💾 Desde caché</span>' : '<span class="badge badge-success">🆕 Recién procesado</span>'}
+            </div>
+            ${result.processed_date ? `<p class="text-muted">Procesado: ${result.processed_date}</p>` : ''}
+        </div>
+
+        <div class="ocr-text-container">
+            <div class="form-group">
+                <label class="form-label">Texto extraído:</label>
+                <textarea id="ocr-extracted-text" class="form-control ocr-textarea" readonly>${result.text}</textarea>
+            </div>
+        </div>
+
+        <div class="modal-buttons">
+            <button class="btn btn-secondary" onclick="hideOCRResultModal()">
+                <i class="fas fa-times"></i>
+                Cerrar
+            </button>
+            <button class="btn btn-primary" onclick="copyOCRText()">
+                <i class="fas fa-copy"></i>
+                Copiar Texto
+            </button>
+            <button class="btn btn-info" onclick="downloadOCRText('${fileName}')">
+                <i class="fas fa-download"></i>
+                Descargar TXT
+            </button>
+        </div>
+    `;
+
+    // Mostrar modal
+    modal.style.display = 'flex';
+}
+
+/**
+ * Oculta el modal de resultado OCR
+ */
+function hideOCRResultModal() {
+    const modal = document.getElementById('ocr-result-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+/**
+ * Copia el texto OCR al portapapeles
+ */
+async function copyOCRText() {
+    const textarea = document.getElementById('ocr-extracted-text');
+    try {
+        await navigator.clipboard.writeText(textarea.value);
+        showNotification('✅ Texto copiado al portapapeles', 'success');
+    } catch (error) {
+        // Fallback para navegadores sin clipboard API
+        textarea.select();
+        document.execCommand('copy');
+        showNotification('✅ Texto copiado al portapapeles', 'success');
+    }
+}
+
+/**
+ * Descarga el texto como archivo TXT
+ */
+function downloadOCRText(fileName) {
+    const textarea = document.getElementById('ocr-extracted-text');
+    const text = textarea.value;
+
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName.replace(/\.pdf$/i, '') + '_extraido.txt';
+    a.click();
+
+    URL.revokeObjectURL(url);
+    showNotification('✅ Archivo TXT descargado', 'success');
+}
+
+/**
+ * Obtiene la base activa actual
+ */
+function getActiveBaseKey() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('base') || 'SCANNER';
+}
