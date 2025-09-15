@@ -18,21 +18,35 @@ class DirectoryManager
         }
 
         $basePath = $this->documentBases[$baseKey]['path'];
-        $fullPath = $this->pathValidator->buildSecurePath($basePath, $relativePath);
 
-        if (!is_readable($fullPath)) {
-            throw new Exception("No se puede acceder a la carpeta");
+        try {
+            $fullPath = $this->pathValidator->buildSecurePath($basePath, $relativePath);
+        } catch (Exception $e) {
+            // Debug: Log del error de path validation
+            error_log("PathValidator error: " . $e->getMessage() . " | BasePath: {$basePath} | RelativePath: {$relativePath}");
+            throw new Exception("Error de validación de ruta: " . $e->getMessage());
+        }
+
+        if (!is_dir($fullPath) || !is_readable($fullPath)) {
+            // Debug: Log información detallada
+            error_log("Directory access error - FullPath: {$fullPath} | is_dir: " . (is_dir($fullPath) ? 'true' : 'false') . " | is_readable: " . (is_readable($fullPath) ? 'true' : 'false'));
+            throw new Exception("No se puede acceder a la carpeta: {$fullPath}");
         }
 
         $items = [];
         $scanResult = scandir($fullPath);
+
+        if ($scanResult === false) {
+            error_log("scandir failed for path: {$fullPath}");
+            throw new Exception("Error al escanear el directorio");
+        }
 
         foreach ($scanResult as $item) {
             if ($item === '.' || $item === '..') {
                 continue;
             }
 
-            $itemPath = $fullPath . '/' . $item;
+            $itemPath = $fullPath . DIRECTORY_SEPARATOR . $item;
             $itemRelativePath = $relativePath ? $relativePath . '/' . $item : $item;
 
             $items[] = [
