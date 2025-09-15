@@ -567,9 +567,7 @@ function initializeBatchUpload() {
 
     // Click en la zona de drop abre el selector de archivos
     dropZone.addEventListener('click', function(e) {
-        if (e.target.id !== 'batch-patient-name') {
-            fileInput.click();
-        }
+        fileInput.click();
     });
 
     // Drag and drop events
@@ -580,12 +578,6 @@ function initializeBatchUpload() {
 
     // File input change
     fileInput.addEventListener('change', handleFileSelect);
-
-    // Patient name input change - actualizar vista previa
-    const patientInput = document.getElementById('batch-patient-name');
-    if (patientInput) {
-        patientInput.addEventListener('input', debounce(updateBatchDisplay, 300));
-    }
 
     // Prevent default drag behaviors on document
     document.addEventListener('dragover', preventDefault);
@@ -736,32 +728,29 @@ function updateBatchDisplay() {
 }
 
 /**
- * Crea una card de archivo para el lote
+ * Crea una card de archivo moderna para el lote
  */
 function createFileCard(fileObj) {
     const icon = getFileIcon(fileObj.name);
     const sizeFormatted = formatFileSize(fileObj.size);
-    const previewName = generatePreviewName(fileObj);
 
     return `
-        <div class="batch-file-card" data-file-id="${fileObj.id}">
-            <div class="batch-file-status ${fileObj.status}"></div>
-
-            <div class="batch-file-header">
-                <div class="batch-file-info">
-                    <div class="batch-file-name">
+        <div class="modern-file-card" data-file-id="${fileObj.id}">
+            <div class="file-card-header">
+                <div class="file-card-info">
+                    <div class="file-card-name">
                         <i class="fas ${icon}"></i>
                         ${fileObj.name}
                     </div>
-                    <div class="batch-file-size">${sizeFormatted}</div>
+                    <div class="file-card-size">${sizeFormatted}</div>
                 </div>
-                <button class="batch-file-remove" onclick="removeBatchFile(${fileObj.id})" title="Eliminar archivo">
+                <button class="file-remove-btn" onclick="removeBatchFile(${fileObj.id})" title="Eliminar archivo">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
-            <div class="batch-file-type">
-                <label>Tipo de documento:</label>
+            <div class="file-type-selector">
+                <label>Tipo de documento</label>
                 <select onchange="updateFileType(${fileObj.id}, this.value)">
                     <option value="autorizacion" ${fileObj.type === 'autorizacion' ? 'selected' : ''}>📋 Autorización</option>
                     <option value="historia" ${fileObj.type === 'historia' ? 'selected' : ''}>🩺 Historia Clínica</option>
@@ -772,39 +761,10 @@ function createFileCard(fileObj) {
                     <option value="otro" ${fileObj.type === 'otro' ? 'selected' : ''}>📄 Otro</option>
                 </select>
             </div>
-
-            <div class="batch-file-preview" title="Vista previa del nombre final">
-                ${previewName}
-            </div>
         </div>
     `;
 }
 
-/**
- * Genera el nombre de vista previa para el archivo
- */
-function generatePreviewName(fileObj) {
-    const patientName = document.getElementById('batch-patient-name').value.trim();
-    const typeMap = {
-        'autorizacion': 'AUTO',
-        'historia': 'HC',
-        'factura': 'FACT',
-        'consentimiento': 'CONS',
-        'orden': 'OM',
-        'soat': 'SOAT',
-        'otro': 'DOC'
-    };
-
-    const prefix = typeMap[fileObj.type] || 'DOC';
-    const extension = '.' + fileObj.name.split('.').pop();
-
-    if (patientName) {
-        const cleanName = patientName.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
-        return `${prefix}_${cleanName}_${fileObj.id}${extension}`;
-    } else {
-        return `${prefix}_${fileObj.id}${extension}`;
-    }
-}
 
 /**
  * Actualiza el tipo de un archivo en el lote
@@ -845,9 +805,9 @@ function clearBatchFiles() {
 }
 
 /**
- * Procesa todos los archivos del lote
+ * Muestra el modal del formulario del paciente
  */
-function processBatchFiles() {
+function showBatchFormModal() {
     if (batchFiles.length === 0) {
         showNotification('No hay archivos para procesar', 'warning');
         return;
@@ -859,16 +819,60 @@ function processBatchFiles() {
         return;
     }
 
-    // Por ahora mostrar confirmación - luego implementaremos la subida real
-    const patientName = document.getElementById('batch-patient-name').value.trim();
-    const message = patientName
-        ? `¿Procesar ${batchFiles.length} archivos para el paciente "${patientName}"?`
-        : `¿Procesar ${batchFiles.length} archivos?`;
+    // Limpiar campos del formulario
+    document.getElementById('batch_doc_number').value = '';
+    document.getElementById('batch_license_plate').value = '';
+    document.getElementById('batch_first_name').value = '';
+    document.getElementById('batch_second_name').value = '';
+    document.getElementById('batch_first_lastname').value = '';
+    document.getElementById('batch_second_lastname').value = '';
 
-    if (confirm(message)) {
-        showNotification('Función de procesamiento en desarrollo...', 'info');
-        // TODO: Implementar la subida real de archivos
+    // Actualizar contador de archivos
+    document.getElementById('batch-file-count-display').textContent = batchFiles.length;
+
+    // Mostrar modal
+    const modal = document.getElementById('batch-form-modal');
+    modal.style.display = 'flex';
+
+    // Focus en el primer campo
+    setTimeout(() => {
+        document.getElementById('batch_doc_number').focus();
+    }, 100);
+}
+
+/**
+ * Oculta el modal del formulario del paciente
+ */
+function hideBatchFormModal() {
+    const modal = document.getElementById('batch-form-modal');
+    modal.style.display = 'none';
+}
+
+/**
+ * Procesa el formulario del paciente y sube los archivos
+ */
+function submitBatchForm() {
+    // Obtener valores de los campos
+    const docNumber = document.getElementById('batch_doc_number').value.trim();
+    const firstName = document.getElementById('batch_first_name').value.trim();
+    const firstLastname = document.getElementById('batch_first_lastname').value.trim();
+    const licensePlate = document.getElementById('batch_license_plate').value.trim();
+
+    // Validar campos requeridos
+    if (!docNumber || !firstName || !firstLastname || !licensePlate) {
+        showNotification('Por favor, completa los campos requeridos (*).', 'error');
+        return;
     }
+
+    // Validar formato de placa
+    if (!isValidLicensePlate(licensePlate)) {
+        showNotification('Formato de placa no válido', 'error');
+        return;
+    }
+
+    showNotification('Función de procesamiento en desarrollo...', 'info');
+    hideBatchFormModal();
+    // TODO: Implementar la subida real de archivos
 }
 
 /**

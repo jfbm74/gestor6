@@ -158,23 +158,22 @@ include 'templates/layout/header.php';
     </div>
 
     <?php if ($activeBaseKey === 'SCANNER' && $authManager->hasPermission('upload')): ?>
-    <!-- Drag & Drop Zone for Multiple Files -->
-    <div class="batch-upload-section">
-        <div class="drop-zone-compact" id="batch-drop-zone">
-            <div class="drop-zone-content">
-                <div class="drop-zone-visual">
-                    <i class="fas fa-cloud-upload-alt drop-icon"></i>
-                    <div class="drop-text">
-                        <span class="drop-primary">Arrastra múltiples archivos del paciente aquí</span>
-                        <span class="drop-secondary">o haz clic para seleccionar</span>
-                    </div>
+    <!-- Modern Batch Upload Section -->
+    <div class="modern-upload-section">
+        <!-- Drop Zone -->
+        <div class="modern-drop-zone" id="batch-drop-zone">
+            <div class="drop-zone-inner">
+                <div class="drop-zone-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7 10l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 15V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </div>
-                <div class="drop-zone-quick-fill">
-                    <input type="text"
-                           id="batch-patient-name"
-                           class="patient-quick-input"
-                           placeholder="Nombre del paciente (opcional)"
-                           autocomplete="off">
+                <div class="drop-zone-text">
+                    <h3>Arrastra tus archivos aquí</h3>
+                    <p>o <span class="drop-link">haz clic para seleccionar</span></p>
+                    <span class="drop-formats">Soporta PDF, JPG, PNG, DOC • Máx. 50MB</span>
                 </div>
             </div>
             <input type="file"
@@ -185,19 +184,24 @@ include 'templates/layout/header.php';
         </div>
 
         <!-- File Preview Cards (Initially Hidden) -->
-        <div class="batch-files-container" id="batch-files-container" style="display: none;">
-            <div class="batch-files-header">
-                <h4><i class="fas fa-files-o"></i> Archivos seleccionados (<span id="file-count">0</span>)</h4>
-                <div class="batch-actions">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearBatchFiles()">
-                        <i class="fas fa-times"></i> Limpiar
+        <div class="files-preview-section" id="batch-files-container" style="display: none;">
+            <div class="preview-header">
+                <div class="preview-title">
+                    <h4>Archivos seleccionados</h4>
+                    <span class="file-counter" id="file-count">0</span>
+                </div>
+                <div class="preview-actions">
+                    <button type="button" class="btn-ghost" onclick="clearBatchFiles()">
+                        <i class="fas fa-trash-alt"></i>
+                        Limpiar todo
                     </button>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="processBatchFiles()" disabled id="process-batch-btn">
-                        <i class="fas fa-cogs"></i> Procesar lote
+                    <button type="button" class="btn-primary" onclick="showBatchFormModal()" disabled id="process-batch-btn">
+                        <i class="fas fa-arrow-right"></i>
+                        Continuar
                     </button>
                 </div>
             </div>
-            <div class="batch-files-grid" id="batch-files-grid">
+            <div class="files-grid" id="batch-files-grid">
                 <!-- File cards will be dynamically added here -->
             </div>
         </div>

@@ -104,6 +104,78 @@
     </div>
 </div>
 
+<!-- Batch Upload Form Modal -->
+<div id="batch-form-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-user-edit"></i>
+                Datos del Paciente
+            </h3>
+            <button class="modal-close" onclick="hideBatchFormModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <p class="mb-3">Se procesarán <strong id="batch-file-count-display">0</strong> archivos para este paciente</p>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">N° Documento *</label>
+                <input type="text" id="batch_doc_number" class="form-control" placeholder="Número de documento" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Placa *</label>
+                <input type="text" id="batch_license_plate" class="form-control" placeholder="Placa del vehículo" required>
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Primer Nombre *</label>
+                <input type="text" id="batch_first_name" class="form-control" placeholder="Primer nombre" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Segundo Nombre</label>
+                <input type="text" id="batch_second_name" class="form-control" placeholder="Segundo nombre">
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Primer Apellido *</label>
+                <input type="text" id="batch_first_lastname" class="form-control" placeholder="Primer apellido" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Segundo Apellido</label>
+                <input type="text" id="batch_second_lastname" class="form-control" placeholder="Segundo apellido">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="batch_destination_base_select" class="form-label">Copiar a la carpeta:</label>
+            <select id="batch_destination_base_select" class="form-control">
+                <?php foreach ($config['document_bases'] as $key => $details): ?>
+                    <?php if ($key !== 'SCANNER' && $key !== 'docs'): ?>
+                        <option value="<?php echo $key; ?>"><?php echo htmlspecialchars($details['name']); ?></option>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="modal-buttons">
+            <button class="btn btn-secondary" onclick="hideBatchFormModal()">
+                <i class="fas fa-arrow-left"></i>
+                Volver
+            </button>
+            <button class="btn btn-primary" onclick="submitBatchForm()">
+                <i class="fas fa-upload"></i>
+                Procesar Archivos
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Hidden Forms -->
 <form method="post" id="rename-form" style="display:none;" action="?path=<?php echo urlencode($currentPathRelative ?? ''); ?>&base=<?php echo $activeBaseKey ?? ''; ?>">
     <input type="hidden" name="old_name" id="old_name">
