@@ -44,6 +44,9 @@ function initializeFileManager() {
     // Inicializar controles de PDF
     initializePdfControls();
 
+    // Inicializar batch upload drag & drop
+    initializeBatchUpload();
+
     // Cerrar modal al hacer click fuera
     if (copyModal) {
         copyModal.addEventListener('click', function(e) {
@@ -546,4 +549,341 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// === BATCH UPLOAD FUNCTIONALITY ===
+
+let batchFiles = [];
+let fileCounter = 0;
+
+/**
+ * Inicializa la funcionalidad de batch upload
+ */
+function initializeBatchUpload() {
+    const dropZone = document.getElementById('batch-drop-zone');
+    const fileInput = document.getElementById('batch-file-input');
+
+    if (!dropZone || !fileInput) return;
+
+    // Click en la zona de drop abre el selector de archivos
+    dropZone.addEventListener('click', function(e) {
+        if (e.target.id !== 'batch-patient-name') {
+            fileInput.click();
+        }
+    });
+
+    // Drag and drop events
+    dropZone.addEventListener('dragover', handleDragOver);
+    dropZone.addEventListener('dragenter', handleDragEnter);
+    dropZone.addEventListener('dragleave', handleDragLeave);
+    dropZone.addEventListener('drop', handleDrop);
+
+    // File input change
+    fileInput.addEventListener('change', handleFileSelect);
+
+    // Patient name input change - actualizar vista previa
+    const patientInput = document.getElementById('batch-patient-name');
+    if (patientInput) {
+        patientInput.addEventListener('input', debounce(updateBatchDisplay, 300));
+    }
+
+    // Prevent default drag behaviors on document
+    document.addEventListener('dragover', preventDefault);
+    document.addEventListener('drop', preventDefault);
+}
+
+/**
+ * Previene comportamientos por defecto del drag
+ */
+function preventDefault(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+/**
+ * Maneja el evento dragover
+ */
+function handleDragOver(e) {
+    preventDefault(e);
+    this.classList.add('drag-over');
+}
+
+/**
+ * Maneja el evento dragenter
+ */
+function handleDragEnter(e) {
+    preventDefault(e);
+    this.classList.add('drag-over');
+}
+
+/**
+ * Maneja el evento dragleave
+ */
+function handleDragLeave(e) {
+    preventDefault(e);
+    // Solo remover la clase si realmente salimos del elemento
+    if (!this.contains(e.relatedTarget)) {
+        this.classList.remove('drag-over');
+    }
+}
+
+/**
+ * Maneja el evento drop
+ */
+function handleDrop(e) {
+    preventDefault(e);
+    this.classList.remove('drag-over');
+
+    const files = e.dataTransfer.files;
+    processBatchFileList(files);
+}
+
+/**
+ * Maneja la selección de archivos desde el input
+ */
+function handleFileSelect(e) {
+    const files = e.target.files;
+    processBatchFileList(files);
+    // Reset input para permitir seleccionar los mismos archivos
+    e.target.value = '';
+}
+
+/**
+ * Procesa la lista de archivos seleccionados
+ */
+function processBatchFileList(files) {
+    if (!files || files.length === 0) return;
+
+    const validFiles = Array.from(files).filter(file => {
+        // Validar tipo de archivo
+        const validTypes = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
+        const extension = '.' + file.name.split('.').pop().toLowerCase();
+
+        if (!validTypes.includes(extension)) {
+            showNotification(`Archivo "${file.name}" no es válido. Solo se permiten: PDF, JPG, PNG, DOC, DOCX`, 'warning');
+            return false;
+        }
+
+        // Validar tamaño (máximo 50MB)
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+            showNotification(`Archivo "${file.name}" es demasiado grande. Máximo 50MB`, 'warning');
+            return false;
+        }
+
+        return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Agregar archivos al lote
+    validFiles.forEach(file => {
+        fileCounter++;
+        const fileObj = {
+            id: fileCounter,
+            file: file,
+            name: file.name,
+            size: file.size,
+            type: detectDocumentType(file.name),
+            status: 'pending'
+        };
+        batchFiles.push(fileObj);
+    });
+
+    updateBatchDisplay();
+    showNotification(`${validFiles.length} archivo(s) agregado(s) al lote`, 'success');
+}
+
+/**
+ * Detecta automáticamente el tipo de documento por el nombre del archivo
+ */
+function detectDocumentType(filename) {
+    const name = filename.toLowerCase();
+
+    if (name.includes('autorizac') || name.includes('autoriza')) return 'autorizacion';
+    if (name.includes('historia') || name.includes('hc')) return 'historia';
+    if (name.includes('factura') || name.includes('fact')) return 'factura';
+    if (name.includes('consentimiento') || name.includes('consent')) return 'consentimiento';
+    if (name.includes('orden') || name.includes('om')) return 'orden';
+    if (name.includes('soat')) return 'soat';
+
+    return 'otro'; // Por defecto
+}
+
+/**
+ * Actualiza la visualización del lote de archivos
+ */
+function updateBatchDisplay() {
+    const container = document.getElementById('batch-files-container');
+    const grid = document.getElementById('batch-files-grid');
+    const fileCount = document.getElementById('file-count');
+    const processBtn = document.getElementById('process-batch-btn');
+
+    if (batchFiles.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    fileCount.textContent = batchFiles.length;
+
+    // Generar cards de archivos
+    grid.innerHTML = batchFiles.map(fileObj => createFileCard(fileObj)).join('');
+
+    // Habilitar/deshabilitar botón de procesar
+    const allReady = batchFiles.every(f => f.status === 'ready');
+    processBtn.disabled = !allReady || batchFiles.length === 0;
+}
+
+/**
+ * Crea una card de archivo para el lote
+ */
+function createFileCard(fileObj) {
+    const icon = getFileIcon(fileObj.name);
+    const sizeFormatted = formatFileSize(fileObj.size);
+    const previewName = generatePreviewName(fileObj);
+
+    return `
+        <div class="batch-file-card" data-file-id="${fileObj.id}">
+            <div class="batch-file-status ${fileObj.status}"></div>
+
+            <div class="batch-file-header">
+                <div class="batch-file-info">
+                    <div class="batch-file-name">
+                        <i class="fas ${icon}"></i>
+                        ${fileObj.name}
+                    </div>
+                    <div class="batch-file-size">${sizeFormatted}</div>
+                </div>
+                <button class="batch-file-remove" onclick="removeBatchFile(${fileObj.id})" title="Eliminar archivo">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="batch-file-type">
+                <label>Tipo de documento:</label>
+                <select onchange="updateFileType(${fileObj.id}, this.value)">
+                    <option value="autorizacion" ${fileObj.type === 'autorizacion' ? 'selected' : ''}>📋 Autorización</option>
+                    <option value="historia" ${fileObj.type === 'historia' ? 'selected' : ''}>🩺 Historia Clínica</option>
+                    <option value="factura" ${fileObj.type === 'factura' ? 'selected' : ''}>🧾 Factura</option>
+                    <option value="consentimiento" ${fileObj.type === 'consentimiento' ? 'selected' : ''}>📝 Consentimiento</option>
+                    <option value="orden" ${fileObj.type === 'orden' ? 'selected' : ''}>🏥 Orden Médica</option>
+                    <option value="soat" ${fileObj.type === 'soat' ? 'selected' : ''}>🚗 SOAT</option>
+                    <option value="otro" ${fileObj.type === 'otro' ? 'selected' : ''}>📄 Otro</option>
+                </select>
+            </div>
+
+            <div class="batch-file-preview" title="Vista previa del nombre final">
+                ${previewName}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Genera el nombre de vista previa para el archivo
+ */
+function generatePreviewName(fileObj) {
+    const patientName = document.getElementById('batch-patient-name').value.trim();
+    const typeMap = {
+        'autorizacion': 'AUTO',
+        'historia': 'HC',
+        'factura': 'FACT',
+        'consentimiento': 'CONS',
+        'orden': 'OM',
+        'soat': 'SOAT',
+        'otro': 'DOC'
+    };
+
+    const prefix = typeMap[fileObj.type] || 'DOC';
+    const extension = '.' + fileObj.name.split('.').pop();
+
+    if (patientName) {
+        const cleanName = patientName.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+        return `${prefix}_${cleanName}_${fileObj.id}${extension}`;
+    } else {
+        return `${prefix}_${fileObj.id}${extension}`;
+    }
+}
+
+/**
+ * Actualiza el tipo de un archivo en el lote
+ */
+function updateFileType(fileId, newType) {
+    const fileObj = batchFiles.find(f => f.id === fileId);
+    if (fileObj) {
+        fileObj.type = newType;
+        fileObj.status = 'ready';
+        updateBatchDisplay();
+    }
+}
+
+/**
+ * Remueve un archivo del lote
+ */
+function removeBatchFile(fileId) {
+    batchFiles = batchFiles.filter(f => f.id !== fileId);
+    updateBatchDisplay();
+
+    if (batchFiles.length === 0) {
+        showNotification('Lote de archivos vaciado', 'info');
+    }
+}
+
+/**
+ * Limpia todos los archivos del lote
+ */
+function clearBatchFiles() {
+    if (batchFiles.length === 0) return;
+
+    if (confirm(`¿Estás seguro de limpiar los ${batchFiles.length} archivos del lote?`)) {
+        batchFiles = [];
+        fileCounter = 0;
+        updateBatchDisplay();
+        showNotification('Lote de archivos limpiado', 'info');
+    }
+}
+
+/**
+ * Procesa todos los archivos del lote
+ */
+function processBatchFiles() {
+    if (batchFiles.length === 0) {
+        showNotification('No hay archivos para procesar', 'warning');
+        return;
+    }
+
+    const allReady = batchFiles.every(f => f.status === 'ready');
+    if (!allReady) {
+        showNotification('Algunos archivos no están listos. Revisa los tipos de documento.', 'warning');
+        return;
+    }
+
+    // Por ahora mostrar confirmación - luego implementaremos la subida real
+    const patientName = document.getElementById('batch-patient-name').value.trim();
+    const message = patientName
+        ? `¿Procesar ${batchFiles.length} archivos para el paciente "${patientName}"?`
+        : `¿Procesar ${batchFiles.length} archivos?`;
+
+    if (confirm(message)) {
+        showNotification('Función de procesamiento en desarrollo...', 'info');
+        // TODO: Implementar la subida real de archivos
+    }
+}
+
+/**
+ * Obtiene el icono FontAwesome para un archivo
+ */
+function getFileIcon(filename) {
+    const extension = filename.split('.').pop().toLowerCase();
+    const iconMap = {
+        'pdf': 'fa-file-pdf',
+        'doc': 'fa-file-word',
+        'docx': 'fa-file-word',
+        'jpg': 'fa-file-image',
+        'jpeg': 'fa-file-image',
+        'png': 'fa-file-image',
+        'gif': 'fa-file-image'
+    };
+    return iconMap[extension] || 'fa-file';
 }

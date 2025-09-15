@@ -157,6 +157,53 @@ include 'templates/layout/header.php';
         <?php endforeach; ?>
     </div>
 
+    <?php if ($activeBaseKey === 'SCANNER' && $authManager->hasPermission('upload')): ?>
+    <!-- Drag & Drop Zone for Multiple Files -->
+    <div class="batch-upload-section">
+        <div class="drop-zone-compact" id="batch-drop-zone">
+            <div class="drop-zone-content">
+                <div class="drop-zone-visual">
+                    <i class="fas fa-cloud-upload-alt drop-icon"></i>
+                    <div class="drop-text">
+                        <span class="drop-primary">Arrastra múltiples archivos del paciente aquí</span>
+                        <span class="drop-secondary">o haz clic para seleccionar</span>
+                    </div>
+                </div>
+                <div class="drop-zone-quick-fill">
+                    <input type="text"
+                           id="batch-patient-name"
+                           class="patient-quick-input"
+                           placeholder="Nombre del paciente (opcional)"
+                           autocomplete="off">
+                </div>
+            </div>
+            <input type="file"
+                   id="batch-file-input"
+                   multiple
+                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                   style="display: none;">
+        </div>
+
+        <!-- File Preview Cards (Initially Hidden) -->
+        <div class="batch-files-container" id="batch-files-container" style="display: none;">
+            <div class="batch-files-header">
+                <h4><i class="fas fa-files-o"></i> Archivos seleccionados (<span id="file-count">0</span>)</h4>
+                <div class="batch-actions">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearBatchFiles()">
+                        <i class="fas fa-times"></i> Limpiar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="processBatchFiles()" disabled id="process-batch-btn">
+                        <i class="fas fa-cogs"></i> Procesar lote
+                    </button>
+                </div>
+            </div>
+            <div class="batch-files-grid" id="batch-files-grid">
+                <!-- File cards will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- File List -->
     <div class="content-section">
         <div class="table-container">
