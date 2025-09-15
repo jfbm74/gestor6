@@ -677,7 +677,7 @@ function processBatchFileList(files) {
             name: file.name,
             size: file.size,
             type: detectDocumentType(file.name),
-            status: 'pending'
+            status: 'ready'
         };
         batchFiles.push(fileObj);
     });
