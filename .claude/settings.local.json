@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Read(//Users/juan.bustamante/personal/**)",
+      "Bash(php:*)",
+      "Bash(brew services:*)",
+      "Read(//opt/homebrew/etc/nginx/**)",
+      "Bash(curl:*)",
+      "Bash(nginx:*)",
+      "Read(//opt/homebrew/var/log/nginx/**)",
+      "Bash(lsof:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
