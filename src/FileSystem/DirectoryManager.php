@@ -71,11 +71,16 @@ class DirectoryManager
             $itemCount++;
         }
 
-        // Ordenar: directorios primero, luego archivos, alfabéticamente
+        // Ordenar: directorios primero, luego archivos por fecha de modificación (más reciente primero)
         usort($items, function($a, $b) {
             if ($a['is_directory'] != $b['is_directory']) {
                 return $b['is_directory'] - $a['is_directory'];
             }
+            // Para archivos, ordenar por fecha de modificación (más reciente primero)
+            if (!$a['is_directory'] && !$b['is_directory']) {
+                return $b['modified'] - $a['modified'];
+            }
+            // Para directorios, mantener orden alfabético
             return strcasecmp($a['name'], $b['name']);
         });
 
